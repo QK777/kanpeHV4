@@ -1,488 +1,808 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>FF14 カンペ（十字/X字 + マーカー）</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FF14 カンペ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..800&family=Inter:wght@400..800&display=swap" rel="stylesheet">
   <style>
+    /* =========================================================
+       EDIT HERE（後で調整しやすいCSS変数）
+       ========================================================= */
     :root{
-      --app-bg:#0b0f14;
-      --panel-bg:#0e141b;
-      --text:#e6edf3;
-      --muted:rgba(230,237,243,.72);
-      --border:rgba(230,237,243,.16);
-      --shadow:0 14px 34px rgba(0,0,0,.55);
+      --bg0:#060810;
+      --bg1:#0B1020;
+      --card: rgba(18, 20, 32, 0.72);
+      --card2: rgba(10, 12, 22, 0.70);
+      --border: rgba(180, 205, 255, 0.18);
+      --border2: rgba(180, 205, 255, 0.10);
+      --text: rgba(240, 248, 255, 0.92);
+      --muted: rgba(240, 248, 255, 0.60);
+      --shadow: 0 20px 54px rgba(0,0,0,0.60);
 
-      /* t1っぽい色 */
-      --pink:#ff9aa2;
-      --yellow:#fff2a1;
-      --blue:#9ad9ff;
-      --purple:#d1b3ff;
+      --radius: 18px;
+      --radius2: 14px;
 
-      /* ボタンサイズ（端末幅に応じて自動調整） */
-      --sq: clamp(62px, 10.5vw, 86px);
-      --ci: clamp(68px, 11.5vw, 92px);
-      --sq-font: clamp(34px, 6.2vw, 58px);
-      --ci-font: clamp(38px, 6.8vw, 66px);
+      --btnBg: rgba(255,255,255,0.10);
+      --btnBgHover: rgba(255,255,255,0.14);
+      --btnActive: rgba(120, 200, 255, 0.22);
+      --btnBorder: rgba(180, 205, 255, 0.20);
 
-      /* タップしやすい当たり判定の余白 */
-      --hit-pad: 10px;
+      /* 画像表示はすべて contain */
+      --cross-scale: 1.00; /* ← 大きくしたいなら 1.05 などに（上げると見切れやすいので注意） */
+      --ougi-scale: 0.75;  /* ← 安地画像スケール（75%） */
+
+      /* 枠サイズ（一定） */
+      --cross-frame-h: clamp(170px, 22vw, 260px);
+      --ougi-frame-h:  clamp(170px, 22vw, 260px);
+      --marker-frame-h: clamp(160px, 18vw, 220px);
+
+      /* マーカーボード */
+      --board-size: clamp(260px, 36vw, 420px);
+      --mk-size: clamp(45.8px, 6.51vw, 73.0px); /* 10% back from v10 */
+
+      /* タップしやすさ */
+      --tap: 46px;
+
+      /* ← 大円/小円の文字サイズ */
+      --kind-label-size: 40px;  
+
+      /* kind pill label font */
+      --kind-label-font: "Fraunces", "Shippori Mincho", "Noto Serif JP", system-ui, sans-serif;
+
+      /* kind pill icon size */
+      --kind-icon: clamp(110px, 9.5vw, 140px);
+      --kind-pill-minh: 190px;
+      --kind-label-color: rgba(240,245,255,.92); /* ← 文字色 */
+      --kind-label-muted: rgba(240,245,255,.72); /* ← サブ/薄い場合 */
     }
 
     *{ box-sizing:border-box; }
-
-    .hidden{ display:none; }
-
+    html,body{ height:100%; }
     body{
       margin:0;
-      background:var(--app-bg);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
       color:var(--text);
-      font-family:"Segoe UI", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-      -webkit-font-smoothing:antialiased;
-      text-rendering:optimizeLegibility;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(110,165,255,0.20), transparent 60%),
+        radial-gradient(900px 500px at 72% 8%, rgba(140,90,255,0.16), transparent 62%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
       overflow-x:hidden;
     }
 
-    /* ===== レイアウト ===== */
-    #wrap{
-      display:flex;
-      gap:22px;
-      padding:18px;
-      align-items:stretch;
+    .app{ max-width: 1280px; margin: 0 auto; padding: 16px; }
+
+    /* ===== Layout（画像のように：左=操作/ボード、右=表示） ===== */
+    .layout{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 1100px){
+      .layout{ grid-template-columns: 380px 1fr; }
+    }
+    @media (max-width: 980px){
+      /* iPad縦/スマホ：縦に積む */
+      .layout{ grid-template-columns: 1fr; }
     }
 
-    #leftPanel{
-      width:min(520px, 100%);
+    .panel{
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    /* left panel layout */
+    aside.panel{ display:flex; flex-direction:column; }
+
+    .reset-wrap{ margin-top:auto; padding: 14px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+    /* .btn の後に来ても負けないよう、.btn.btn-reset で上書き */
+    .btn.btn-reset{ background: rgba(255,90,120,0.14); border-color: rgba(255,140,160,0.35); }
+    .btn.btn-reset:hover{ background: rgba(255,90,120,0.18); }
+    .reset-hint{ font-size:12px; color: var(--muted); text-align:center; }
+
+    .divider{ height:1px; background: rgba(255,255,255,0.10); margin: 14px 14px; }
+
+    /* ===== Left controls (＋字/×字, 安地) ===== */
+    .left-controls{ padding: 14px; }
+    .left-controls .btn-col{
       display:flex;
       flex-direction:column;
-      gap:12px;
-    }
-
-    .sectionTitle{
-      font-size:12px;
-      color:var(--muted);
-      letter-spacing:.02em;
-      margin-left:2px;
-      margin-top:6px;
-    }
-
-    /* ===== 十字 / X字 ===== */
-    #topRow{
-      display:flex;
-      gap:12px;
+      gap: 12px;
       align-items:center;
-      flex-wrap:wrap;
     }
 
-    .choiceBtn{
-      min-width:150px;
-      height:56px;
-      padding:0 14px;
-      border-radius:18px;
-      border:2px solid rgba(255,255,255,.14);
-      background:#0f141a;
-      color:var(--text);
-      font-size:22px;
-      font-weight:800;
+    .btn{
+      min-height: var(--tap);
+      height: var(--tap);
+      width: min(260px, 100%);
+      padding: 0 16px;
+      border-radius: 14px;
+      border: 1px solid var(--btnBorder);
+      background: var(--btnBg);
+      color: var(--text);
       cursor:pointer;
-      box-shadow:0 8px 18px rgba(0,0,0,.38);
+      font-weight: 780;
+      letter-spacing: 0.3px;
       user-select:none;
-      -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      transition: background .12s ease, transform .08s ease, border-color .12s ease;
     }
-    .choiceBtn.cross{ border-color: rgba(79,195,247,.9); }
-    .choiceBtn.x{ border-color: rgba(255,111,97,.9); }
-    .choiceBtn.active{ outline:3px solid rgba(255,255,255,.88); outline-offset:3px; }
+    .btn:hover{ background: var(--btnBgHover); }
+    .btn:active{ transform: scale(0.985); }
+    .btn.is-active{ background: rgba(120,200,255,0.20); border-color: rgba(120,200,255,0.55); }
 
-    /* ===== マーカー盤面 ===== */
-    #pad{
+    /* ===== Marker board (t1風に戻す) ===== */
+    .board-wrap{ padding: 14px; }
+    .board-caption{ color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+
+    .marker-board{
+      width: var(--board-size);
+      height: var(--board-size);
+      max-width: 100%;
+      border-radius: 22px;
+      background:
+        radial-gradient(900px 900px at 30% 20%, rgba(120,200,255,0.10), transparent 55%),
+        radial-gradient(700px 700px at 70% 70%, rgba(170,120,255,0.10), transparent 58%),
+        rgba(0,0,0,0.42);
+      border: 1px solid rgba(180,205,255,0.18);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.62);
+      position: relative;
+      margin: 0 auto;
+      overflow:hidden;
+    }
+
+    .mk{
+      position:absolute;
+      width: var(--mk-size);
+      height: var(--mk-size);
+      border: 3px solid rgba(0,0,0,0.70);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      transform: translate(-50%,-50%);
+      color: rgba(0,0,0,0.88);
+      font-weight: 900;
+      font-size: clamp(18px, 3.5vw, 30px);
+      letter-spacing: 0.5px;
+    }
+
+    .mk.is-active{
+      outline: 4px solid rgba(255,255,255,0.92);
+      outline-offset: 4px;
+      box-shadow: 0 0 0 10px rgba(255,255,255,0.15), 0 16px 28px rgba(0,0,0,0.58);
+    }
+
+    /* shapes */
+    .mk.square{ border-radius: 11px; }
+    .mk.circle{ border-radius: 999px; }
+
+    /* colors */
+    .c-pink{ background:#FF9FA7; }
+    .c-yellow{ background:#FFF3A6; }
+    .c-blue{ background:#93D7FF; }
+    .c-purple{ background:#C7B3FF; }
+
+    /* positions (t1の見た目に寄せた％配置) */
+    .mk-1{ left: 25%; top: 25%; }
+    .mk-A{ left: 50%; top: 15%; }
+    .mk-2{ left: 75%; top: 25%; }
+
+    .mk-D{ left: 15%; top: 47%; }
+    .mk-B{ left: 85%; top: 47%; }
+
+    .mk-4{ left: 25%; top: 70%; }
+    .mk-C{ left: 50%; top: 85%; }
+    .mk-3{ left: 75%; top: 70%; }
+
+    /* ===== Right: Display sections (ドラッグ並び替え/非表示) ===== */
+    .stack{
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+    }
+
+    .section{
+      background: linear-gradient(180deg, rgba(18,20,32,0.65), rgba(10,12,22,0.62));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .section-header{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      user-select:none;
+    }
+
+    .drag-handle{
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(180,205,255,0.18);
+      color: rgba(240,248,255,0.85);
+      cursor: grab;
+      touch-action: none;
+    }
+    .drag-handle:active{ cursor: grabbing; }
+
+    .section-title{ flex:1; font-weight: 820; font-size: 14px; letter-spacing: 0.2px; }
+
+    .icon-btn{
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(180,205,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: rgba(240,248,255,0.92);
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 760;
+      transition: background .12s ease, transform .08s ease;
+    }
+    .icon-btn:hover{ background: rgba(255,255,255,0.12); }
+    .icon-btn:active{ transform: scale(0.98); }
+    .icon-btn.is-on{ background: rgba(120,200,255,0.18); border-color: rgba(120,200,255,0.55); }
+
+    .section-body{ padding: 12px; }
+
+    /* section content layout: 左=ボタン、右=表示枠（画像のように） */
+    .row{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+    @media (max-width: 980px){
+      .row{ grid-template-columns: 1fr; }
+    }
+
+    .row-left{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      align-items:center;
+      justify-content:center;
+      padding: 6px 0;
+    }
+
+    .frame{
       position:relative;
       width:100%;
-      max-width:520px;
-      aspect-ratio: 420 / 340;
-      background:#000;
-      border-radius:18px;
-      box-shadow:var(--shadow);
+      border-radius: var(--radius2);
+      border: 1px solid rgba(180,205,255,0.16);
+      background: rgba(0,0,0,0.35);
       overflow:hidden;
     }
 
-    .token{
+    .frame.placeholder::after{
+      content: attr(data-placeholder);
       position:absolute;
-      left:50%; top:50%;
-      transform:translate(-50%, -50%);
+      inset: 0;
       display:flex;
       align-items:center;
       justify-content:center;
-      border:3px solid #000;
-      color:#000;
-      font-weight:900;
-      user-select:none;
-      cursor:pointer;
-      box-shadow:0 8px 18px rgba(0,0,0,.38);
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+      padding: 12px;
+      text-align:center;
+      color: rgba(240,248,255,0.52);
+      font-weight: 760;
+      letter-spacing: 0.2px;
+      font-size: 12px;
     }
 
-    /* 当たり判定を少し広げる（見た目は変えない） */
-    .token::before{
-      content:"";
-      position:absolute;
-      inset: calc(-1 * var(--hit-pad));
-      border-radius:999px;
+    .frame img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit: contain;
+      transform-origin:center;
     }
 
-    .token.square{
-      width:var(--sq);
-      height:var(--sq);
-      border-radius:12px;
-      font-size:var(--sq-font);
-    }
-    .token.circle{
-      width:var(--ci);
-      height:var(--ci);
-      border-radius:999px;
-      font-size:var(--ci-font);
-    }
+    /* 画像スケール（基本1.0 / contain） */
+    .frame.cross img{ transform: scale(var(--cross-scale)); }
+    .frame.ougi img{ transform: scale(var(--ougi-scale)); }
 
-    .token.pink{ background:var(--pink); }
-    .token.yellow{ background:var(--yellow); }
-    .token.blue{ background:var(--blue); }
-    .token.purple{ background:var(--purple); }
+    /* Marker display rows（大円/頭割：左にカード、右に枠） */
+    .marker-rows{ display:flex; flex-direction:column; gap: 12px; }
 
-    .token.active{
-      outline:4px solid rgba(255,255,255,.88);
-      outline-offset:4px;
+    .marker-row{
+      display:grid;
+      grid-template-columns: 170px 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+    @media (max-width: 560px){
+      .marker-row{ grid-template-columns: 1fr; }
     }
 
-    /* ===== 右側：2段ビューア ===== */
-    #viewerStack{
-      flex:1;
+    .kind-pill{
+      border-radius: 16px;
+      border: 1px solid rgba(180,205,255,0.16);
+      background: rgba(255,255,255,0.08);
+      padding: 10px;
+      min-height: var(--kind-pill-minh);
       display:flex;
       flex-direction:column;
-      gap:14px;
-      min-height:340px;
-    }
-
-    .viewerPanel{
-      background:var(--panel-bg);
-      border:1px solid var(--border);
-      border-radius:28px;
-      display:flex;
       align-items:center;
-      justify-content:center;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      position:relative;
-      min-height:160px;
-      touch-action: pan-y; /* 縦スクロールは許可、横スワイプは自前 */
-    }
-
-    .viewerPanel img{
-      max-width:100%;
-      max-height:100%;
-      object-fit:contain;
-      display:block;
-    }
-
-    .placeholder{
-      color:rgba(230,237,243,.62);
-      font-weight:700;
-      letter-spacing:.02em;
-      padding:18px;
-      text-align:center;
-    }
-
-    .swipeHint{
-      position:absolute;
-      left:12px;
-      bottom:10px;
-      font-size:11px;
-      color:rgba(230,237,243,.70);
-      background:rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      padding:6px 8px;
-      border-radius:12px;
+      justify-content:space-between;
+      gap: 8px;
+      cursor:pointer;
       user-select:none;
-      pointer-events:none;
-      backdrop-filter: blur(4px);
+      touch-action: manipulation;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+    }
+    .kind-pill:hover{ background: rgba(255,255,255,0.12); }
+    .kind-pill:active{ transform: scale(0.985); }
+    .kind-pill.is-on{ background: rgba(120,200,255,0.18); border-color: rgba(120,200,255,0.55); }
+
+    .kind-pill .t{
+      color: #fff;                 /* 白 */
+      font-size: 24px;             /* 24px */
+      font-family: var(--kind-label-font);
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-shadow: 0 6px 16px rgba(0,0,0,0.55);
     }
 
-    .viewerLabel{
+    .kind-pill img{ width: var(--kind-icon); height: var(--kind-icon); max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55)); }
+
+    .marker-frame{ height: var(--marker-frame-h); }
+
+    /* 非選択側を隠す（枠サイズ維持） */
+    .marker-row.is-muted{ opacity: 0; pointer-events:none; user-select:none; transform: scale(0.99); }
+    .marker-row{ transition: opacity .12s ease, transform .12s ease; }
+
+    /* Result label (押したボタン名を表示) */
+    .result-label{
       position:absolute;
-      right:12px;
-      top:10px;
-      font-size:11px;
-      color:rgba(230,237,243,.80);
-      background:rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      padding:6px 8px;
-      border-radius:12px;
-      user-select:none;
+      top: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(180,205,255,0.18);
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      color: rgba(240,248,255,0.92);
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      font-size: 14px;
       pointer-events:none;
-      backdrop-filter: blur(4px);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.55);
     }
+    .result-label.is-empty{ display:none; }
 
-    .dividerLine{
-      height:1px;
-      background:rgba(255,255,255,.12);
-      border:0;
-      margin:0;
-    }
+    /* collapse */
+    .section.is-collapsed .section-body{ display:none; }
 
-    @media (max-width: 980px){
-      #wrap{ flex-direction:column; }
-      #leftPanel{ width:auto; }
-      #viewerStack{ min-height: 320px; }
-      .choiceBtn{ min-width: 140px; height:54px; font-size:20px; }
-      .viewerPanel{ min-height: 180px; }
-    }
+    /* drag */
+    .section.is-dragging{ outline: 2px solid rgba(120,200,255,0.55); box-shadow: 0 24px 64px rgba(0,0,0,0.70); }
+    .drop-hint{ border-top: 2px solid rgba(120,200,255,0.55); }
 
-    @media (max-width: 520px){
-      .viewerPanel{ min-height: 200px; }
-    }
+    @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+
+
+
   </style>
 </head>
 <body>
-  <div id="wrap">
-    <div id="leftPanel">
-      <div class="sectionTitle">十字 / X字</div>
-      <div id="topRow" aria-label="十字・X字ボタン">
-        <button class="choiceBtn cross" data-key="CROSS">十字</button>
-        <button class="choiceBtn x" data-key="X">X字</button>
-      </div>
+  <div class="app">
+    <div class="layout">
+      <!-- LEFT -->
+      <aside class="panel" aria-label="操作パネル">
+        <div class="left-controls">
+          <div class="btn-col">
+            <button class="btn" data-cross="plus">＋字</button>
+            <button class="btn" data-cross="x">×字</button>
+          </div>
+        </div>
 
-      <div class="sectionTitle">マーカー（1 / 2 / 3 / 4 / A / B / C / D）</div>
-      <div id="pad" aria-label="マーカー切替ボタン"></div>
-    </div>
+        <div class="divider"></div>
 
-    <div id="viewerStack" aria-label="表示エリア">
-      <div class="viewerPanel" id="viewerTop" aria-label="十字/X字の画像表示">
-        <span class="placeholder" id="phTop" data-default="十字/X字：画像が見つかりません">十字/X字：画像が見つかりません</span>
-        <div class="swipeHint">←→ スワイプで切替</div>
-        <div class="viewerLabel">十字 / X字</div>
-      </div>
+        <div class="left-controls">
+          <div class="btn-col">
+            <button class="btn" data-ougi="12">1・2 安地</button>
+            <button class="btn" data-ougi="34">3・4 安地</button>
+          </div>
+        </div>
 
-      <hr class="dividerLine" />
+        <div class="divider"></div>
 
-      <div class="viewerPanel" id="viewerMain" aria-label="マーカーの画像表示">
-        <span class="placeholder" id="phMain" data-default="マーカー：画像が見つかりません">マーカー：画像が見つかりません</span>
-        <div class="swipeHint">←→ スワイプで切替</div>
-        <div class="viewerLabel">マーカー</div>
-      </div>
+        <div class="board-wrap">
+          <div class="board-caption">マーカー（A/B/C/D/1/2/3/4）を押す → 右で大円/頭割を選択</div>
+          <div class="marker-board" id="markerBoard">
+            <button class="mk square c-pink mk-1" data-marker="1" type="button">1</button>
+            <button class="mk circle c-pink mk-A" data-marker="A" type="button">A</button>
+            <button class="mk square c-yellow mk-2" data-marker="2" type="button">2</button>
+
+            <button class="mk circle c-purple mk-D" data-marker="D" type="button">D</button>
+            <button class="mk circle c-yellow mk-B" data-marker="B" type="button">B</button>
+
+            <button class="mk square c-purple mk-4" data-marker="4" type="button">4</button>
+            <button class="mk circle c-blue mk-C" data-marker="C" type="button">C</button>
+            <button class="mk square c-blue mk-3" data-marker="3" type="button">3</button>
+          </div>
+          <div style="margin-top:10px; color:var(--muted); font-size:12px;">状態: <span id="markerState">未選択</span></div>
+          </div>
+
+        <div class="reset-wrap">
+          <button class="btn btn-reset" id="resetBtn" type="button">リセット</button>
+          <div class="reset-hint">※並び替え・非表示は保持</div>
+        </div>
+      </aside>
+
+      <!-- RIGHT -->
+      <main class="stack" id="displayStack" aria-label="表示パネル">
+
+        <!-- SECTION: Cross -->
+        <section class="section" data-section-id="cross">
+          <div class="section-header">
+            <div class="drag-handle" title="ドラッグで並び替え" aria-label="ドラッグで並び替え">≡</div>
+            <div class="section-title">＋字 / ×字</div>
+            <button class="icon-btn" data-action="toggleHide" aria-label="非表示切替">非表示</button>
+          </div>
+          <div class="section-body">
+            <div class="frame cross placeholder" id="crossFrame" data-placeholder="十字 / X字を押すとここに表示" style="height: var(--cross-frame-h);">
+              <div class="result-label is-empty" id="crossLabel"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: Ougi -->
+        <section class="section" data-section-id="ougi">
+          <div class="section-header">
+            <div class="drag-handle" title="ドラッグで並び替え" aria-label="ドラッグで並び替え">≡</div>
+            <div class="section-title">1・2安地 / 3・4安地</div>
+            <button class="icon-btn" data-action="toggleHide" aria-label="非表示切替">非表示</button>
+          </div>
+          <div class="section-body">
+            <div class="frame ougi placeholder" id="ougiFrame" data-placeholder="安地を押すとここに表示" style="height: var(--ougi-frame-h);">
+              <div class="result-label is-empty" id="ougiLabel"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: Marker -->
+        <section class="section" data-section-id="marker">
+          <div class="section-header">
+            <div class="drag-handle" title="ドラッグで並び替え" aria-label="ドラッグで並び替え">≡</div>
+            <div class="section-title">マーカー表示（大円 / 頭割）</div>
+            <button class="icon-btn" data-action="toggleHide" aria-label="非表示切替">非表示</button>
+          </div>
+          <div class="section-body">
+            <div class="marker-rows" id="markerRows">
+              <div class="marker-row" data-kind="aoe" id="rowAoe">
+                <button class="kind-pill" data-pick-kind="aoe" type="button">
+                  <div class="t">大円</div>
+                  <img src="./img/effect_aoe.png" alt="大円" />
+                </button>
+                <div class="frame marker-frame placeholder" id="aoeFrame" data-placeholder="マーカーを押すとここに表示"></div>
+              </div>
+
+              <div class="marker-row" data-kind="share" id="rowShare">
+                <button class="kind-pill" data-pick-kind="share" type="button">
+                  <div class="t">頭割</div>
+                  <img src="./img/effect_share.png" alt="頭割" />
+                </button>
+                <div class="frame marker-frame placeholder" id="shareFrame" data-placeholder="マーカーを押すとここに表示"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
     </div>
   </div>
 
   <script>
-    // =========================
-    // 公開用：ボタン → 画像ファイル（同じフォルダに置く）
-    // =========================
-    // 画像を置く場所（例：img/ に入れるなら "./img/" に変更）
-    const BASE = "./";
+    /* =========================================================
+       EDIT HERE（画像パス / 保存キー）
+       ========================================================= */
+    const CONFIG = {
+      storageKeyOrder: 'kanpe_section_order_v2',
+      storageKeyHidden: 'kanpe_section_hidden_v2',
 
-    const IMAGES = {
-      // 十字 / X字
-      CROSS: BASE + "jyuuji.png",
-      X:     BASE + "Xji.png",
-
-      // マーカー
-      A:   BASE + "sen_a.png",
-      B:   BASE + "sen_b.png",
-      C:   BASE + "sen_c.png",
-      D:   BASE + "sen_d.png",
-      "1": BASE + "sen_1.png",
-      "2": BASE + "sen_2.png",
-      "3": BASE + "sen_3.png",
-      "4": BASE + "sen_4.png",
+      images: {
+        cross: {
+          plus: './img/jyuuji.png',
+          x: './img/Xji.png',
+        },
+        ougi: {
+          '12': './img/ougi_12.png',
+          '34': './img/ougi_34.png',
+        },
+        // marker: ./img/sen_${id}_${kind}.png  (idは小文字 a/b/c/d, 数字はそのまま)
+        marker: {
+          base: './img/sen_',
+          suffix: { aoe: '_aoe.png', share: '_share.png' }
+        }
+      },
     };
 
-    // =========================
-    // ボタン定義（%座標）
-    // ※必要ならここを調整するだけで配置が変えられる
-    // =========================
-    const MAIN_BUTTONS = [
-      // 四角
-      { key: "1", label: "1", shape: "square", color: "pink",   x: 18, y: 24 },
-      { key: "2", label: "2", shape: "square", color: "yellow", x: 66, y: 26 },
-      { key: "3", label: "3", shape: "square", color: "blue",   x: 66, y: 74 },
-      { key: "4", label: "4", shape: "square", color: "purple", x: 22, y: 74 },
-      // 丸
-      { key: "A", label: "A", shape: "circle", color: "pink",   x: 42, y: 10 },
-      { key: "B", label: "B", shape: "circle", color: "yellow", x: 86, y: 50 },
-      { key: "C", label: "C", shape: "circle", color: "blue",   x: 40, y: 90 },
-      { key: "D", label: "D", shape: "circle", color: "purple", x: 10, y: 50 },
-    ];
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-    // スワイプ切替の順番
-    const ORDER_TOP  = ["CROSS", "X"];
-    const ORDER_MAIN = ["1","2","3","4","A","B","C","D"];
-
-    // =========================
-    // 状態
-    // =========================
-    const state = {
-      activeTop:  "CROSS",
-      activeMain: "A",
-    };
-
-    const pad = document.getElementById("pad");
-    const topRow = document.getElementById("topRow");
-
-    const viewerTop  = document.getElementById("viewerTop");
-    const viewerMain = document.getElementById("viewerMain");
-    const phTop  = document.getElementById("phTop");
-    const phMain = document.getElementById("phMain");
-
-    function renderPanel(panelEl, placeholderEl, imgSrc){
-      const old = panelEl.querySelector("img");
-      if(old) old.remove();
-
-      // 以前のエラーメッセージを戻す
-      if(placeholderEl?.dataset?.default){
-        placeholderEl.textContent = placeholderEl.dataset.default;
-      }
-
-      if(!imgSrc){
-        placeholderEl.classList.remove("hidden");
-        return;
-      }
-      placeholderEl.classList.add("hidden");
-      const img = document.createElement("img");
-      img.src = imgSrc;
-      img.alt = "";
-      img.addEventListener("error", () => {
-        // GitHub Pagesは大文字小文字を区別するので、ファイル名違いが起きやすい
-        const old2 = panelEl.querySelector("img");
-        if(old2) old2.remove();
-        placeholderEl.textContent = `画像が見つかりません：${imgSrc}`;
-        placeholderEl.classList.remove("hidden");
-      });
-      panelEl.appendChild(img);
+    function loadJSON(key, fallback){
+      try{ const s = localStorage.getItem(key); return s ? (JSON.parse(s) ?? fallback) : fallback; }
+      catch(e){ return fallback; }
     }
+    function saveJSON(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){} }
 
-    function setActiveTop(key){
-      state.activeTop = key;
-      [...topRow.querySelectorAll(".choiceBtn")].forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.key === key);
-      });
-    }
+    function setFrameImage(frameEl, src){
+      // Keep label element if present
+      const label = frameEl.querySelector('.result-label');
+      // Remove existing img only
+      const oldImg = frameEl.querySelector('img');
+      if(oldImg) oldImg.remove();
 
-    function setActiveMain(key){
-      state.activeMain = key;
-      [...pad.querySelectorAll(".token")].forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.key === key);
-      });
-    }
+      frameEl.classList.remove('placeholder');
 
-    function showTop(key){
-      setActiveTop(key);
-      renderPanel(viewerTop, phTop, IMAGES[key] || null);
-    }
-
-    function showMain(key){
-      setActiveMain(key);
-      renderPanel(viewerMain, phMain, IMAGES[key] || null);
-    }
-
-    // iOS/Androidでは pointerup のあとに click が来て二重実行されやすいので抑制
-    let lastTouchTs = 0;
-    function attachTapShow(el, key, group){
-      el.addEventListener("pointerup", (ev) => {
-        if(ev.pointerType === "touch") lastTouchTs = Date.now();
-        if(group === "top") showTop(key);
-        else showMain(key);
-      });
-
-      // clickフォールバック（マウス/キーボード向け）
-      el.addEventListener("click", (ev) => {
-        if(Date.now() - lastTouchTs < 650) return; // タッチ直後のclickは無視
-        if(group === "top") showTop(key);
-        else showMain(key);
-      });
-    }
-
-    function buildTopButtons(){
-      [...topRow.querySelectorAll(".choiceBtn")].forEach(btn => {
-        attachTapShow(btn, btn.dataset.key, "top");
-      });
-    }
-
-    function buildMainButtons(){
-      pad.innerHTML = "";
-      MAIN_BUTTONS.forEach(cfg => {
-        const b = document.createElement("button");
-        b.className = `token ${cfg.shape} ${cfg.color}`;
-        b.textContent = cfg.label;
-        b.dataset.key = cfg.key;
-        b.style.left = cfg.x + "%";
-        b.style.top  = cfg.y + "%";
-        attachTapShow(b, cfg.key, "main");
-        pad.appendChild(b);
-      });
-    }
-
-    // =========================
-    // スワイプ（各ビューア）
-    // =========================
-    function attachSwipe(panelEl, order, getActiveKey, showFn){
-      let tracking = false;
-      let startX = 0, startY = 0;
-      let moved = false;
-
-      const indexInOrder = (key) => {
-        const idx = order.indexOf(key);
-        return idx >= 0 ? idx : 0;
+      const img = new Image();
+      img.alt = '';
+      img.decoding = 'async';
+      img.loading = 'eager';
+      img.src = src;
+      img.onerror = () => {
+        frameEl.classList.add('placeholder');
+        frameEl.dataset.placeholder = `画像が見つかりません: ${src}`;
+        const bad = frameEl.querySelector('img');
+        if(bad) bad.remove();
       };
 
-      const showByIndex = (idx) => {
-        const key = order[(idx + order.length) % order.length];
-        showFn(key);
-      };
-
-      panelEl.addEventListener("pointerdown", (ev) => {
-        tracking = true;
-        moved = false;
-        startX = ev.clientX;
-        startY = ev.clientY;
-      });
-
-      panelEl.addEventListener("pointermove", (ev) => {
-        if(!tracking) return;
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        if(Math.abs(dx) + Math.abs(dy) > 12) moved = true;
-      });
-
-      panelEl.addEventListener("pointerup", (ev) => {
-        if(!tracking) return;
-        tracking = false;
-
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        if(!moved) return;
-
-        if(Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
-
-        const cur = getActiveKey() || order[0];
-        const idx = indexInOrder(cur);
-        if(dx < 0) showByIndex(idx + 1);
-        else showByIndex(idx - 1);
-      });
-
-      panelEl.addEventListener("pointercancel", () => { tracking = false; });
+      if(label) frameEl.insertBefore(img, label.nextSibling);
+      else frameEl.appendChild(img);
     }
 
-    // =========================
-    // 初期化
-    // =========================
-    buildTopButtons();
-    buildMainButtons();
+    function clearFrame(frameEl, placeholderText){
+      const label = frameEl.querySelector('.result-label');
+      // remove only images
+      frameEl.querySelectorAll('img').forEach(i => i.remove());
+      frameEl.classList.add('placeholder');
+      frameEl.dataset.placeholder = placeholderText;
+      if(label){ label.classList.add('is-empty'); label.textContent=''; }
+    }
 
-    attachSwipe(viewerTop,  ORDER_TOP,  () => state.activeTop,  showTop);
-    attachSwipe(viewerMain, ORDER_MAIN, () => state.activeMain, showMain);
+    /* =========================================================
+       Cross / Ougi (仕様：同じボタンを押しても消さない)
+       ========================================================= */
+    let selectedCross = null; // 'plus'|'x'|null
+    let selectedOugi = null;  // '12'|'34'|null
 
-    // 初期表示
-    showTop("CROSS");
-    showMain("A");
+    const crossFrame = $('#crossFrame');
+    const ougiFrame  = $('#ougiFrame');
+    const crossLabel = $('#crossLabel');
+    const ougiLabel  = $('#ougiLabel');
+
+    clearFrame(crossFrame, '十字 / X字を押すとここに表示');
+    clearFrame(ougiFrame, '安地を押すとここに表示');
+
+    function setCross(which){
+      selectedCross = which;
+      // show label = pressed button
+      if(crossLabel){ crossLabel.textContent = (which === 'plus' ? '＋字' : '×字'); crossLabel.classList.remove('is-empty'); }
+      setFrameImage(crossFrame, CONFIG.images.cross[which]);
+      $$('.btn[data-cross]').forEach(btn => btn.classList.toggle('is-active', btn.dataset.cross === which));
+    }
+    function setOugi(which){
+      selectedOugi = which;
+      if(ougiLabel){ ougiLabel.textContent = (which === '12' ? '1・2 安地' : '3・4 安地'); ougiLabel.classList.remove('is-empty'); }
+      setFrameImage(ougiFrame, CONFIG.images.ougi[which]);
+      $$('.btn[data-ougi]').forEach(btn => btn.classList.toggle('is-active', btn.dataset.ougi === which));
+    }
+
+    document.addEventListener('click', (e) => {
+      const crossBtn = e.target.closest('.btn[data-cross]');
+      if(crossBtn){ setCross(crossBtn.dataset.cross); return; }
+
+      const ougiBtn = e.target.closest('.btn[data-ougi]');
+      if(ougiBtn){ setOugi(ougiBtn.dataset.ougi); return; }
+    });
+
+    /* =========================================================
+       Marker logic
+       - マーカー押下: 2種類表示に戻す
+       - 大円/頭割を選ぶ: 片方だけ残す（もう片方は透明）
+       - 枠サイズは常に一定
+       ========================================================= */
+    let currentMarker = null; // 'A'.. or '1'..
+    let chosenKind = null;    // 'aoe'|'share'|null
+
+    const markerState = $('#markerState');
+    const aoeFrame = $('#aoeFrame');
+    const shareFrame = $('#shareFrame');
+
+    clearFrame(aoeFrame, 'マーカーを押すとここに表示');
+    clearFrame(shareFrame, 'マーカーを押すとここに表示');
+
+    function markerFileId(id){
+      return /^[A-D]$/.test(id) ? id.toLowerCase() : id;
+    }
+    function getMarkerImage(id, kind){
+      const fid = markerFileId(id);
+      return CONFIG.images.marker.base + fid + CONFIG.images.marker.suffix[kind];
+    }
+
+    function setMarker(id){
+      currentMarker = id;
+      chosenKind = null;
+
+      $$('.mk').forEach(b => b.classList.toggle('is-active', b.dataset.marker === id));
+      markerState.textContent = `選択: ${id}`;
+
+      // 2種類とも表示
+      setFrameImage(aoeFrame, getMarkerImage(id, 'aoe'));
+      setFrameImage(shareFrame, getMarkerImage(id, 'share'));
+
+      $('#rowAoe').classList.remove('is-muted');
+      $('#rowShare').classList.remove('is-muted');
+      $$('.kind-pill').forEach(b => b.classList.remove('is-on'));
+    }
+
+    function pickKind(kind){
+      if(!currentMarker) return;
+      chosenKind = kind;
+
+      $('#rowAoe').classList.toggle('is-muted', kind !== 'aoe');
+      $('#rowShare').classList.toggle('is-muted', kind !== 'share');
+
+      $$('.kind-pill').forEach(b => b.classList.toggle('is-on', b.dataset.pickKind === kind));
+    }
+
+    $('#markerBoard').addEventListener('click', (e) => {
+      const b = e.target.closest('.mk');
+      if(!b) return;
+      setMarker(b.dataset.marker);
+    });
+
+    document.addEventListener('click', (e) => {
+      const pk = e.target.closest('[data-pick-kind]');
+      if(pk){ pickKind(pk.dataset.pickKind); return; }
+
+      const frame = e.target.closest('.frame');
+      if(frame && (frame.id === 'aoeFrame' || frame.id === 'shareFrame')){
+        pickKind(frame.id === 'aoeFrame' ? 'aoe' : 'share');
+      }
+    });
+
+    /* =========================================================
+       Reset button (keeps order/hidden)
+       ========================================================= */
+    const resetBtn = $("#resetBtn");
+    function resetLeftState(){
+      // Cross / Ougi
+      selectedCross = null;
+      selectedOugi = null;
+      clearFrame(crossFrame, '十字 / X字を押すとここに表示');
+      clearFrame(ougiFrame,  '安地を押すとここに表示');
+      $$('.btn[data-cross]').forEach(btn => btn.classList.remove('is-active'));
+      $$('.btn[data-ougi]').forEach(btn => btn.classList.remove('is-active'));
+
+      // Marker
+      currentMarker = null;
+      chosenKind = null;
+      markerState.textContent = '未選択';
+      $$('.mk').forEach(b => b.classList.remove('is-active'));
+      clearFrame(aoeFrame,   'マーカーを押すとここに表示');
+      clearFrame(shareFrame, 'マーカーを押すとここに表示');
+      $('#rowAoe').classList.remove('is-muted');
+      $('#rowShare').classList.remove('is-muted');
+      $$('.kind-pill').forEach(b => b.classList.remove('is-on'));
+    }
+    if(resetBtn){
+      resetBtn.addEventListener('click', resetLeftState);
+    }
+
+/* =========================================================
+       Hide / Collapse per section
+       ========================================================= */
+    const displayStack = $('#displayStack');
+    const hiddenMap = loadJSON(CONFIG.storageKeyHidden, {});
+
+    function applyHiddenStates(){
+      $$('.section', displayStack).forEach(sec => {
+        const id = sec.dataset.sectionId;
+        const collapsed = !!hiddenMap[id];
+        sec.classList.toggle('is-collapsed', collapsed);
+        const btn = sec.querySelector('[data-action="toggleHide"]');
+        if(btn){ btn.classList.toggle('is-on', collapsed); btn.textContent = collapsed ? '表示' : '非表示'; }
+      });
+    }
+
+    displayStack.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action="toggleHide"]');
+      if(!btn) return;
+      const sec = e.target.closest('.section');
+      if(!sec) return;
+      const id = sec.dataset.sectionId;
+      hiddenMap[id] = !hiddenMap[id];
+      saveJSON(CONFIG.storageKeyHidden, hiddenMap);
+      applyHiddenStates();
+    });
+
+    applyHiddenStates();
+
+    /* =========================================================
+       Drag reorder (Pointer Events)
+       ========================================================= */
+    function applySavedOrder(){
+      const order = loadJSON(CONFIG.storageKeyOrder, null);
+      if(!order || !Array.isArray(order)) return;
+      const sections = new Map($$('.section', displayStack).map(s => [s.dataset.sectionId, s]));
+      order.forEach(id => {
+        const sec = sections.get(id);
+        if(sec) displayStack.appendChild(sec);
+      });
+    }
+    function saveOrder(){
+      const order = $$('.section', displayStack).map(s => s.dataset.sectionId);
+      saveJSON(CONFIG.storageKeyOrder, order);
+    }
+    applySavedOrder();
+
+    let drag = { active:false, sec:null, pointerId:null };
+
+    function clearDropHints(){ $$('.section', displayStack).forEach(s => s.classList.remove('drop-hint')); }
+
+    displayStack.addEventListener('pointerdown', (e) => {
+      const handle = e.target.closest('.drag-handle');
+      if(!handle) return;
+      const sec = handle.closest('.section');
+      if(!sec) return;
+
+      drag.active = true;
+      drag.sec = sec;
+      drag.pointerId = e.pointerId;
+      sec.classList.add('is-dragging');
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    displayStack.addEventListener('pointermove', (e) => {
+      if(!drag.active || e.pointerId !== drag.pointerId) return;
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const over = el ? el.closest('.section') : null;
+      if(!over || over === drag.sec){ clearDropHints(); return; }
+
+      clearDropHints();
+      over.classList.add('drop-hint');
+
+      const r = over.getBoundingClientRect();
+      const before = e.clientY < r.top + r.height/2;
+      if(before) displayStack.insertBefore(drag.sec, over);
+      else displayStack.insertBefore(drag.sec, over.nextSibling);
+    });
+
+    function endDrag(){
+      if(!drag.active) return;
+      drag.active = false;
+      if(drag.sec) drag.sec.classList.remove('is-dragging');
+      clearDropHints();
+      saveOrder();
+      drag.sec = null;
+      drag.pointerId = null;
+    }
+
+    displayStack.addEventListener('pointerup', endDrag);
+    displayStack.addEventListener('pointercancel', endDrag);
   </script>
 </body>
 </html>
