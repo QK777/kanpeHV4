@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FF14 カンペ（Mobile）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&family=Fraunces:opsz,wght@9..144,600..800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg0:#060810;
+      --bg1:#0B1020;
+      --card: rgba(18, 20, 32, 0.72);
+      --card2: rgba(10, 12, 22, 0.70);
+      --border: rgba(180, 205, 255, 0.16);
+      --border2: rgba(180, 205, 255, 0.10);
+      --text: rgba(240, 248, 255, 0.92);
+      --muted: rgba(240, 248, 255, 0.62);
+      --shadow: 0 18px 44px rgba(0,0,0,0.60);
+
+      --radius: 22px;
+      --radius2: 16px;
+
+      --btnBg: rgba(255,255,255,0.10);
+      --btnBgHover: rgba(255,255,255,0.14);
+      --btnActive: rgba(120, 200, 255, 0.22);
+      --btnBorder: rgba(180, 205, 255, 0.20);
+
+      --tap: 44px;
+
+      --crossH: 124px;
+      --mkRowH: 72px;
+      --safeImgH: 176px;
+
+      --mkBtn: clamp(34px, 10.5vw, 44px);
+      --mkFont: clamp(18px, 5.8vw, 26px);
+
+      --kindCol: 86px;
+      --kindIcon: 38px;
+
+      --glow: 0 0 0 1px rgba(255,255,255,0.08), 0 18px 50px rgba(0,0,0,0.65);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 520px at 18% -5%, rgba(110,165,255,0.22), transparent 60%),
+        radial-gradient(820px 520px at 85% 10%, rgba(140,90,255,0.16), transparent 62%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .app{ max-width: 430px; margin: 0 auto; padding: 14px 12px calc(18px + env(safe-area-inset-bottom)); }
+
+    .panel{
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    /* ===== Sections ===== */
+    #sections{ display:flex; flex-direction:column; gap: 12px; }
+
+    .sec{ border-radius: var(--radius); overflow:hidden; position:relative; }
+    .sec.is-hidden .sec-body{ display:none; }
+
+    /* 画面を1枚絵に寄せる：通常時はタイトル行を消して縦を節約
+       （編集モード時のみ≡/非表示を表示） */
+    .sec-head{ display:none; }
+    body.is-edit .sec-head{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    }
+    .sec-title{ font-weight: 820; letter-spacing: .2px; font-size: 14px; color: rgba(240,248,255,0.9); }
+
+    .handle{
+      width: 32px; height: 32px;
+      display:none;
+      align-items:center; justify-content:center;
+      border-radius: 10px;
+      border: 1px solid rgba(180,205,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: rgba(240,248,255,0.86);
+      cursor: grab;
+      user-select:none;
+      touch-action: none;
+    }
+    .is-edit .handle{ display:flex; }
+
+    .hideBtn{
+      margin-left:auto;
+      display:none;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(180,205,255,0.20);
+      background: rgba(255,255,255,0.08);
+      color: rgba(240,248,255,0.86);
+      font-weight: 760;
+      font-size: 12px;
+      cursor:pointer;
+    }
+    .is-edit .hideBtn{ display:inline-flex; align-items:center; }
+    .hideBtn.is-on{ background: rgba(120,200,255,0.18); border-color: rgba(120,200,255,0.45); }
+
+    .sec-body{ padding: 10px; }
+
+    .btnRow{ display:flex; gap:10px; justify-content:center; }
+    .btn{
+      height: var(--tap);
+      min-height: var(--tap);
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid var(--btnBorder);
+      background: var(--btnBg);
+      color: var(--text);
+      cursor:pointer;
+      font-weight: 860;
+      letter-spacing: .2px;
+      user-select:none;
+      touch-action: manipulation;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+    }
+    .btn:active{ transform: scale(0.985); }
+    .btn.is-active{ background: var(--btnActive); border-color: rgba(120,200,255,0.55); }
+
+    .frame{
+      margin-top: 10px;
+      border-radius: 16px;
+      border: 1px solid var(--border2);
+      background: rgba(0,0,0,0.14);
+      box-shadow: var(--glow);
+      overflow:hidden;
+      position:relative;
+    }
+    .frame.placeholder::before{
+      content: attr(data-placeholder);
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: rgba(240,248,255,0.55);
+      font-size: 12px;
+      letter-spacing:.3px;
+    }
+    .frame img{
+      width:100%; height:100%;
+      object-fit: contain;
+      display:block;
+    }
+
+    /* ===== Cross section ===== */
+    #crossFrame{ height: var(--crossH); }
+
+    /* ===== Marker section ===== */
+    .mkRow{ display:flex; justify-content:space-between; gap: 6px; flex-wrap:nowrap; width:100%; }
+    .mk{
+      width: var(--mkBtn);
+      height: var(--mkBtn);
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.70);
+      background: rgba(255,255,255,0.10);
+      color:#111;
+      font-weight: 900;
+      font-size: var(--mkFont);
+      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      position:relative;
+    }
+    .mk.square{ border-radius: 12px; }
+    .mk.is-active{ outline: 3px solid rgba(235,245,255,0.90); outline-offset: 2px; }
+
+    .c-pink{ background: #ff9aa8; }
+    .c-yellow{ background: #fff1a3; }
+    .c-blue{ background: #99d8ff; }
+    .c-purple{ background: #c7b1ff; }
+
+    .markerGrid{ display:flex; flex-direction:column; gap: 10px; margin-top: 10px; }
+
+    .mLine{
+      display:grid;
+      grid-template-columns: var(--kindCol) 1fr;
+      gap: 10px;
+      align-items:stretch;
+      height: var(--mkRowH);
+    }
+
+    .kindPill{
+      border-radius: 14px;
+      border: 1px solid rgba(180,205,255,0.18);
+      background: rgba(255,255,255,0.06);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    .kindPill .kLabel{
+      font-family: Fraunces, system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: .6px;
+    }
+    .kindPill img{ width: var(--kindIcon); height: var(--kindIcon); object-fit:contain; display:block; }
+    .kindPill.is-on{ background: rgba(120,200,255,0.16); border-color: rgba(120,200,255,0.45); }
+
+    .mFrame{ height: 100%; margin-top: 0; }
+    .mFrame.placeholder{ background: rgba(0,0,0,0.10); }
+    .mLine.is-muted{ opacity: 0.0; pointer-events:none; transform: scale(0.99); }
+    .mLine{ transition: opacity .12s ease, transform .12s ease; }
+
+    /* ===== Safe section ===== */
+    .safeBtnRow{ display:flex; justify-content:space-between; gap: 10px; }
+    .safeBtnRow .btn{ flex:1; }
+
+    /* Cross buttons: make them wider */
+    [data-sec-id="cross"] .safeBtnRow .btn{ padding: 0 18px; }
+
+    .safeGrid{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .safeCard{
+      height: var(--safeImgH);
+      border-radius: 16px;
+      border: 1px solid var(--border2);
+      background: rgba(0,0,0,0.14);
+      box-shadow: var(--glow);
+      overflow:hidden;
+      position:relative;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+    }
+    .safeCard img{ width:100%; height:100%; object-fit:contain; display:block; }
+    .safeCard.is-dim{ opacity: 0.38; filter: saturate(0.7); }
+    .safeCard.is-pick{ outline: 2px solid rgba(120,200,255,0.55); outline-offset: 2px; }
+
+    /* ===== Meteor section ===== */
+    .meteorStrip{ display:flex; justify-content:space-between; gap: 10px; }
+    .meteorBtn{
+      flex:1;
+      border-radius: 12px;
+      border: 1px solid rgba(180,205,255,0.16);
+      background: rgba(0,0,0,0.18);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.50);
+      overflow:hidden;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      padding: 8px 6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .meteorBtn img{ width: 100%; height: 68px; object-fit: contain; display:block; }
+    .meteorBtn.is-active{ outline: 2px solid rgba(120,200,255,0.55); outline-offset: 2px; }
+
+    .meteorResult{
+      margin-top: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(180,205,255,0.16);
+      background: rgba(0,0,0,0.18);
+      box-shadow: var(--glow);
+      padding: 12px;
+      min-height: 56px;
+      /* 隕石の説明は1行で表示 */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: rgba(240,248,255,0.88);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    .meteorResult.is-empty{ color: rgba(240,248,255,0.58); font-weight: 650; }
+
+    /* ===== Bottom bar ===== */
+    .bottom{
+      margin-top: 12px;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+    .bottom .btn{ flex:1; }
+    .btn-reset{
+      background: rgba(255,70,90,0.28);
+      border-color: rgba(255,120,150,0.58);
+      color: rgba(255,240,245,0.98);
+    }
+    .btn-reset.is-active{ background: rgba(255,70,90,0.34); }
+
+    .hint{ margin-top: 6px; font-size: 11px; color: rgba(240,248,255,0.60); text-align:center; }
+
+    /* drag visual */
+    .sec.is-dragging{ opacity: 0.65; }
+    .sec.is-drop-hint{ outline: 2px solid rgba(120,200,255,0.45); outline-offset: -2px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="sections">
+
+      <!-- 十字 / X字 -->
+      <section class="panel sec" data-sec-id="cross">
+        <div class="sec-head">
+          <div class="handle" title="ドラッグで並び替え">≡</div>
+          <div class="sec-title">＋字 / ×字</div>
+          <button class="hideBtn" type="button">非表示</button>
+        </div>
+        <div class="sec-body">
+          <div class="safeBtnRow">
+            <button class="btn" type="button" data-cross="plus">＋字</button>
+            <button class="btn" type="button" data-cross="x">×字</button>
+          </div>
+          <div class="frame placeholder" id="crossFrame" data-placeholder="十字 / X字 を押すとここに表示"></div>
+        </div>
+      </section>
+
+      <!-- マーカー表示 -->
+      <section class="panel sec" data-sec-id="marker">
+        <div class="sec-head">
+          <div class="handle" title="ドラッグで並び替え">≡</div>
+          <div class="sec-title">マーカー表示（大円 / 頭割）</div>
+          <button class="hideBtn" type="button">非表示</button>
+        </div>
+        <div class="sec-body">
+          <div class="mkRow" aria-label="ABCD1234">
+            <button class="mk circle c-pink" type="button" data-marker="A">A</button>
+            <button class="mk circle c-yellow" type="button" data-marker="B">B</button>
+            <button class="mk circle c-blue" type="button" data-marker="C">C</button>
+            <button class="mk circle c-purple" type="button" data-marker="D">D</button>
+            <button class="mk square c-pink" type="button" data-marker="1">1</button>
+            <button class="mk square c-yellow" type="button" data-marker="2">2</button>
+            <button class="mk square c-blue" type="button" data-marker="3">3</button>
+            <button class="mk square c-purple" type="button" data-marker="4">4</button>
+          </div>
+
+          <div class="markerGrid">
+            <div class="mLine" id="lineAoe" data-kind="aoe">
+              <div class="kindPill" data-pick-kind="aoe">
+                <div class="kLabel">大円</div>
+                <img src="./img/effect_aoe.png" alt="大円" />
+              </div>
+              <div class="frame mFrame placeholder" id="aoeFrame" data-placeholder="マーカーを押すとここに表示"></div>
+            </div>
+
+            <div class="mLine" id="lineShare" data-kind="share">
+              <div class="kindPill" data-pick-kind="share">
+                <div class="kLabel">頭割</div>
+                <img src="./img/effect_share.png" alt="頭割" />
+              </div>
+              <div class="frame mFrame placeholder" id="shareFrame" data-placeholder="マーカーを押すとここに表示"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 安地 -->
+      <section class="panel sec" data-sec-id="safe">
+        <div class="sec-head">
+          <div class="handle" title="ドラッグで並び替え">≡</div>
+          <div class="sec-title">1・2安地 / 3・4安地</div>
+          <button class="hideBtn" type="button">非表示</button>
+        </div>
+        <div class="sec-body">
+          <div class="safeBtnRow">
+            <button class="btn" type="button" data-safe="12">1・2 安地</button>
+            <button class="btn" type="button" data-safe="34">3・4 安地</button>
+          </div>
+
+          <div class="safeGrid">
+            <div class="safeCard" id="safe12" data-safe="12" title="1・2 安地">
+              <img src="./img/ougi_12.png" alt="1・2 安地" />
+            </div>
+            <div class="safeCard" id="safe34" data-safe="34" title="3・4 安地">
+              <img src="./img/ougi_34.png" alt="3・4 安地" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 隕石 -->
+      <section class="panel sec" data-sec-id="meteor">
+        <div class="sec-head">
+          <div class="handle" title="ドラッグで並び替え">≡</div>
+          <div class="sec-title">隕石</div>
+          <button class="hideBtn" type="button">非表示</button>
+        </div>
+        <div class="sec-body">
+          <div class="meteorStrip">
+            <div class="meteorBtn" data-meteor="red" role="button" aria-label="赤">
+              <img src="./img/meteor-red.png" alt="赤" />
+            </div>
+            <div class="meteorBtn" data-meteor="yellow" role="button" aria-label="黄">
+              <img src="./img/meteor-yellow.png" alt="黄" />
+            </div>
+            <div class="meteorBtn" data-meteor="green" role="button" aria-label="緑">
+              <img src="./img/meteor-green.png" alt="緑" />
+            </div>
+            <div class="meteorBtn" data-meteor="purple" role="button" aria-label="紫">
+              <img src="./img/meteor-purple.png" alt="紫" />
+            </div>
+          </div>
+
+          <div class="meteorResult is-empty" id="meteorResult">各隕石の説明</div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="bottom">
+      <button class="btn btn-reset" type="button" id="resetBtn">リセット</button>
+      <button class="btn" type="button" id="editBtn">編集モード</button>
+    </div>
+    <div class="hint">編集モード中のみ：並び替え・非表示ができます</div>
+  </div>
+
+  <script>
+    // =====================
+    // CONFIG (PC版の画像パスと同じ)
+    // =====================
+    const CONFIG = {
+      keys: {
+        order: 'kanpe_mobile_order_v1',
+        hidden: 'kanpe_mobile_hidden_v1',
+        edit: 'kanpe_mobile_edit_v1'
+      },
+      images: {
+        cross: { plus: './img/jyuuji.png', x: './img/Xji.png' },
+        marker: { base: './img/sen_', suffix: { aoe: '_aoe.png', share: '_share.png' } },
+      },
+      meteorInfo: {
+        red:    { label: '赤',   lines: ['移動禁止', 'ニア／ファー誘導'] },
+        yellow: { label: '黄',   lines: ['タケノコ設置', 'ニア／ファー誘導'] },
+        green:  { label: '緑',   lines: ['ノックアップ', 'ファー'] },
+        purple: { label: '紫',   lines: ['死の宣告ビーム', 'ニア'] },
+      }
+    };
+
+    const $ = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+    const sectionsEl = $('#sections');
+    const secs = () => $$('.sec', sectionsEl);
+
+    function loadJSON(key, fallback){
+      try{ const s = localStorage.getItem(key); return s ? (JSON.parse(s) ?? fallback) : fallback; }
+      catch(e){ return fallback; }
+    }
+    function saveJSON(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){} }
+
+    // =====================
+    // Cross logic
+    // =====================
+    const crossFrame = $('#crossFrame');
+    function setFrameImage(frame, src){
+      frame.classList.remove('placeholder');
+      frame.querySelectorAll('img').forEach(n=>n.remove());
+      const img = new Image();
+      img.alt='';
+      img.decoding='async';
+      img.loading='eager';
+      img.src = src;
+      frame.appendChild(img);
+    }
+    function clearFrame(frame, text){
+      frame.querySelectorAll('img').forEach(n=>n.remove());
+      frame.classList.add('placeholder');
+      frame.dataset.placeholder = text;
+    }
+    clearFrame(crossFrame, '十字 / X字 を押すとここに表示');
+
+    let selectedCross = null;
+    function setCross(which){
+      selectedCross = which;
+      setFrameImage(crossFrame, CONFIG.images.cross[which]);
+      $$('.btn[data-cross]').forEach(b=>b.classList.toggle('is-active', b.dataset.cross===which));
+    }
+
+    // =====================
+    // Safe logic (2枚は常時表示、選んだ方だけ強調、もう片方は見えづらく)
+    // =====================
+    let selectedSafe = null;
+    function setSafe(which){
+      selectedSafe = which;
+      $$('.btn[data-safe]').forEach(b=>b.classList.toggle('is-active', b.dataset.safe===which));
+      $$('.safeCard').forEach(c=>{
+        const on = c.dataset.safe===which;
+        c.classList.toggle('is-pick', on);
+        c.classList.toggle('is-dim', !!which && !on);
+      });
+    }
+
+    // =====================
+    // Marker logic (PCと同様：マーカー選択で2種表示、kind選択で片方だけ残す)
+    // =====================
+    const aoeFrame = $('#aoeFrame');
+    const shareFrame = $('#shareFrame');
+    const lineAoe = $('#lineAoe');
+    const lineShare = $('#lineShare');
+
+    clearFrame(aoeFrame, 'マーカーを押すとここに表示');
+    clearFrame(shareFrame, 'マーカーを押すとここに表示');
+
+    let currentMarker = null;
+    let chosenKind = null;
+
+    function markerFileId(id){ return /^[A-D]$/.test(id) ? id.toLowerCase() : id; }
+    function getMarkerImage(id, kind){
+      const fid = markerFileId(id);
+      return CONFIG.images.marker.base + fid + CONFIG.images.marker.suffix[kind];
+    }
+
+    function setMarker(id){
+      currentMarker = id;
+      chosenKind = null;
+      $$('.mk').forEach(b=>b.classList.toggle('is-active', b.dataset.marker===id));
+      setFrameImage(aoeFrame, getMarkerImage(id,'aoe'));
+      setFrameImage(shareFrame, getMarkerImage(id,'share'));
+      lineAoe.classList.remove('is-muted');
+      lineShare.classList.remove('is-muted');
+      $$('.kindPill').forEach(k=>k.classList.remove('is-on'));
+    }
+
+    function pickKind(kind){
+      if(!currentMarker) return;
+      chosenKind = kind;
+      lineAoe.classList.toggle('is-muted', kind!=='aoe');
+      lineShare.classList.toggle('is-muted', kind!=='share');
+      $$('.kindPill').forEach(k=>k.classList.toggle('is-on', k.dataset.pickKind===kind));
+    }
+
+    // =====================
+    // Meteor logic (画像タップ → 説明テキストだけ表示)
+    // =====================
+    const meteorResult = $('#meteorResult');
+    let selectedMeteor = null;
+
+    function setMeteor(key){
+      selectedMeteor = key;
+      const info = CONFIG.meteorInfo[key];
+      if(!info) return;
+      $$('.meteorBtn').forEach(b=>b.classList.toggle('is-active', b.dataset.meteor===key));
+      meteorResult.classList.remove('is-empty');
+      meteorResult.textContent = `【${info.label}】 ${info.lines.join(' / ')}`;
+    }
+
+    function clearMeteor(){
+      selectedMeteor = null;
+      $$('.meteorBtn').forEach(b=>b.classList.remove('is-active'));
+      meteorResult.classList.add('is-empty');
+      meteorResult.textContent = '各隕石の説明';
+    }
+    clearMeteor();
+
+    // =====================
+    // Click handlers
+    // =====================
+    document.addEventListener('click', (e)=>{
+      const crossBtn = e.target.closest('.btn[data-cross]');
+      if(crossBtn){ setCross(crossBtn.dataset.cross); return; }
+
+      const safeBtn = e.target.closest('.btn[data-safe]');
+      if(safeBtn){ setSafe(safeBtn.dataset.safe); return; }
+
+      const safeCard = e.target.closest('.safeCard');
+      if(safeCard){ setSafe(safeCard.dataset.safe); return; }
+
+      const mk = e.target.closest('.mk');
+      if(mk){ setMarker(mk.dataset.marker); return; }
+
+      const kp = e.target.closest('.kindPill');
+      if(kp){ pickKind(kp.dataset.pickKind); return; }
+
+      const frame = e.target.closest('.mFrame');
+      if(frame && (frame.id==='aoeFrame' || frame.id==='shareFrame')){
+        pickKind(frame.id==='aoeFrame' ? 'aoe' : 'share');
+        return;
+      }
+
+      const met = e.target.closest('.meteorBtn');
+      if(met){ setMeteor(met.dataset.meteor); return; }
+    });
+
+    // =====================
+    // Reset (操作状態のみ、並び替え/非表示は保持)
+    // =====================
+    $('#resetBtn').addEventListener('click', ()=>{
+      selectedCross=null;
+      clearFrame(crossFrame,'十字 / X字 を押すとここに表示');
+      $$('.btn[data-cross]').forEach(b=>b.classList.remove('is-active'));
+
+      selectedSafe=null;
+      $$('.btn[data-safe]').forEach(b=>b.classList.remove('is-active'));
+      $$('.safeCard').forEach(c=>{ c.classList.remove('is-pick','is-dim'); });
+
+      currentMarker=null;
+      chosenKind=null;
+      $$('.mk').forEach(b=>b.classList.remove('is-active'));
+      clearFrame(aoeFrame,'マーカーを押すとここに表示');
+      clearFrame(shareFrame,'マーカーを押すとここに表示');
+      lineAoe.classList.remove('is-muted');
+      lineShare.classList.remove('is-muted');
+      $$('.kindPill').forEach(k=>k.classList.remove('is-on'));
+
+      clearMeteor();
+    });
+
+    // =====================
+    // Edit mode (reorder + hide)
+    // =====================
+    const editBtn = $('#editBtn');
+    let isEdit = !!loadJSON(CONFIG.keys.edit, false);
+    function applyEdit(){
+      document.body.classList.toggle('is-edit', isEdit);
+      editBtn.classList.toggle('is-active', isEdit);
+      editBtn.textContent = isEdit ? '編集モード中' : '編集モード';
+      saveJSON(CONFIG.keys.edit, isEdit);
+    }
+    editBtn.addEventListener('click', ()=>{ isEdit=!isEdit; applyEdit(); });
+    applyEdit();
+
+    // hide toggles
+    const hiddenMap = loadJSON(CONFIG.keys.hidden, {});
+    function applyHidden(){
+      secs().forEach(sec=>{
+        const id = sec.dataset.secId;
+        const isH = !!hiddenMap[id];
+        sec.classList.toggle('is-hidden', isH);
+        const b = sec.querySelector('.hideBtn');
+        if(b){ b.classList.toggle('is-on', isH); b.textContent = isH ? '表示' : '非表示'; }
+      });
+    }
+    secs().forEach(sec=>{
+      const b = sec.querySelector('.hideBtn');
+      b?.addEventListener('click', ()=>{
+        const id = sec.dataset.secId;
+        hiddenMap[id] = !hiddenMap[id];
+        saveJSON(CONFIG.keys.hidden, hiddenMap);
+        applyHidden();
+      });
+    });
+    applyHidden();
+
+    // reorder by dragging handle (pointer)
+    function saveOrder(){
+      const order = secs().map(s=>s.dataset.secId);
+      saveJSON(CONFIG.keys.order, order);
+    }
+    function applyOrder(){
+      const order = loadJSON(CONFIG.keys.order, null);
+      if(!order) return;
+      const map = new Map(secs().map(s=>[s.dataset.secId, s]));
+      order.forEach(id=>{ const el = map.get(id); if(el) sectionsEl.appendChild(el); });
+    }
+    applyOrder();
+
+    let drag = null;
+    function onPointerDown(e){
+      if(!isEdit) return;
+      const handle = e.target.closest('.handle');
+      if(!handle) return;
+      const sec = handle.closest('.sec');
+      if(!sec) return;
+
+      e.preventDefault();
+      handle.setPointerCapture?.(e.pointerId);
+
+      const rect = sec.getBoundingClientRect();
+      drag = { sec, startY: e.clientY, offsetY: e.clientY - rect.top };
+      sec.classList.add('is-dragging');
+    }
+
+    function onPointerMove(e){
+      if(!drag) return;
+      e.preventDefault();
+
+      const y = e.clientY;
+      const sec = drag.sec;
+
+      // find closest insertion point
+      const siblings = secs().filter(s=>s!==sec);
+      let insertBefore = null;
+      for(const s of siblings){
+        const r = s.getBoundingClientRect();
+        const mid = r.top + r.height/2;
+        if(y < mid){ insertBefore = s; break; }
+      }
+      siblings.forEach(s=>s.classList.remove('is-drop-hint'));
+      if(insertBefore){ insertBefore.classList.add('is-drop-hint'); }
+
+      // move in DOM
+      if(insertBefore){ sectionsEl.insertBefore(sec, insertBefore); }
+      else{ sectionsEl.appendChild(sec); }
+    }
+
+    function onPointerUp(e){
+      if(!drag) return;
+      const sec = drag.sec;
+      sec.classList.remove('is-dragging');
+      secs().forEach(s=>s.classList.remove('is-drop-hint'));
+      drag = null;
+      saveOrder();
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, {passive:false});
+    document.addEventListener('pointermove', onPointerMove, {passive:false});
+    document.addEventListener('pointerup', onPointerUp, {passive:true});
+
+  </script>
+</body>
+</html>
