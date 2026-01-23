@@ -664,8 +664,11 @@
     }
     .result-label.is-empty{ display:none; }
 
-    /* collapse */
+    /* collapse (枠ごと折りたたみ) */
     .section.is-collapsed .section-body{ display:none; }
+    /* 自由配置/編集モードは min-height が固定なので、折りたたみ時だけ解除 */
+    .stack.layout-edit .section.is-collapsed{ min-height: 0 !important; }
+    #displayStack.free-layout .section.is-collapsed{ min-height: 0 !important; }
 
     /* drag */
     .section.is-dragging{ outline: 2px solid rgba(120,200,255,0.55); box-shadow: 0 24px 64px rgba(0,0,0,0.70); }
@@ -1159,6 +1162,66 @@ aside.panel{ display:flex; flex-direction:column; }
     const displayStack = $('#displayStack');
     const hiddenMap = loadJSON(CONFIG.storageKeyHidden, {});
 
+    // ✅ 折りたたみ時に「枠（section）自体の高さ」もヘッダー分まで縮める（自由配置の固定高さ対策）
+    function _getHeaderH(sec){
+      const h = sec.querySelector('.section-header')?.getBoundingClientRect().height;
+      return Math.ceil(h || 44);
+    }
+    function _foldSectionFrame(sec, collapsed){
+      // flowレイアウトは body を隠すだけでOK（高さは自然に縮む）
+      if(!displayStack.classList.contains('free-layout')){ 
+        // 念のため、固定高さが残っていたら解除
+        if(!collapsed) sec.style.height = '';
+        return;
+      }
+
+      const POS_KEY_LOCAL = 'kanpe_free_positions_v1';
+      const id = sec.dataset.sectionId;
+      if(!id) return;
+
+      const stackRect = displayStack.getBoundingClientRect();
+      const r = sec.getBoundingClientRect();
+
+      const pos = loadJSON(POS_KEY_LOCAL, {});
+      const old = pos[id] || {};
+
+      const headerH = _getHeaderH(sec) + 2;
+
+      const left = Math.max(0, (parseFloat(sec.style.left || (r.left - stackRect.left)) || old.left || 0));
+      const top  = Math.max(0, (parseFloat(sec.style.top  || (r.top  - stackRect.top))  || old.top  || 0));
+      const z = parseInt(sec.style.zIndex || old.z || '0', 10) || 0;
+
+      const rec = { ...old, left, top, width: (r.width || old.width || 0), z };
+
+      if(collapsed){
+        // いまの高さ（= 展開時の高さ）を退避
+        const expanded = (old.expandedHeight && old.expandedHeight > headerH + 6)
+          ? old.expandedHeight
+          : (r.height > headerH + 6 ? r.height : (old.height || r.height));
+
+        if(expanded > headerH + 6) rec.expandedHeight = expanded;
+
+        rec.height = headerH;
+        sec.style.height = headerH + 'px';
+      }else{
+        // 退避が無い場合は、一度高さ制約を外して自然な高さを測る
+        let restore = old.expandedHeight;
+        if(!restore || restore <= headerH + 6){
+          const prev = sec.style.height;
+          sec.style.height = '';
+          restore = sec.getBoundingClientRect().height;
+          sec.style.height = prev; // いったん戻す（この後で確定値を入れる）
+        }
+        const h = Math.max(160, restore || 0);
+        rec.height = h;
+        rec.expandedHeight = old.expandedHeight || h;
+        sec.style.height = h + 'px';
+      }
+
+      pos[id] = rec;
+      saveJSON(POS_KEY_LOCAL, pos);
+    }
+
     function applyHiddenStates(){
       $$('.section', displayStack).forEach(sec => {
         const id = sec.dataset.sectionId;
@@ -1166,6 +1229,7 @@ aside.panel{ display:flex; flex-direction:column; }
         sec.classList.toggle('is-collapsed', collapsed);
         const btn = sec.querySelector('[data-action="toggleHide"]');
         if(btn){ btn.classList.toggle('is-on', collapsed); btn.textContent = collapsed ? '表示' : '非表示'; }
+        _foldSectionFrame(sec, collapsed);
       });
     }
 
@@ -1316,10 +1380,21 @@ function applyPositions(pos){
     const rememberedW = p.width || sec.getBoundingClientRect().width || (span === '2' ? 920 : 520);
     const w = Math.min(capW, Math.max(minW, rememberedW));
 
-    const rememberedH = p.height || 0;
-    const minH = 160;
+    // height: 折りたたみ時はヘッダー分まで縮める（自由配置の固定高さ対策）
+    const headerH = Math.ceil((sec.querySelector('.section-header')?.getBoundingClientRect().height || 44)) + 2;
+    const isCollapsed = !!hiddenMap[id];
+    const baseH = (() => {
+      if(isCollapsed) return headerH;
+      // p.height が折りたたみ高さのまま残っている場合は expandedHeight を優先
+      const ph = Number(p.height || 0);
+      const pe = Number(p.expandedHeight || 0);
+      if(pe && (!ph || ph <= headerH + 6)) return pe;
+      return ph || pe || 0;
+    })();
+
+    const minH = isCollapsed ? headerH : 160;
     const capH = Math.max(minH, (parseFloat(getComputedStyle(displayStack).minHeight) || window.innerHeight) - 40);
-    const h = rememberedH ? Math.min(capH, Math.max(minH, rememberedH)) : 0;
+    const h = baseH ? Math.min(capH, Math.max(minH, baseH)) : 0;
 
     // left/top (do not over-clamp horizontally; stage will expand)
     const left = Math.max(0, (p.left || 0));
@@ -1570,7 +1645,10 @@ if(leftStack){
           displayStack.removeEventListener('pointercancel', onUp);
           const pos = loadPositions();
           const r = sec.getBoundingClientRect();
-          pos[sec.dataset.sectionId] = {
+          const id = sec.dataset.sectionId;
+          const old = pos[id] || {};
+          pos[id] = {
+            ...old,
             left: Math.max(0, r.left - stackRect.left),
             top:  Math.max(0, r.top  - stackRect.top),
             width: r.width,
